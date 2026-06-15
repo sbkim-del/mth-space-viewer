@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTH 공간정보 입력 — 금토동</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:#f4f5f7;color:#1a1a2e;min-height:100vh}
+header{background:#2C3E50;color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.hd-title{font-size:14px;font-weight:600}
+.hd-sub{font-size:12px;color:rgba(255,255,255,0.6)}
+
+.container{max-width:860px;margin:0 auto;padding:24px 16px}
+
+/* 공간 선택 */
+.space-select-wrap{background:#fff;border-radius:12px;border:0.5px solid #e0e3e8;padding:20px 24px;margin-bottom:20px}
+.section-title{font-size:13px;font-weight:600;color:#2C3E50;margin-bottom:12px}
+.floor-tabs{display:flex;gap:6px;margin-bottom:12px}
+.ftab{padding:5px 14px;border-radius:20px;border:1px solid #d0d4da;background:#fff;font-size:12px;cursor:pointer;color:#666;transition:all .15s}
+.ftab.active{background:#2C3E50;color:#fff;border-color:#2C3E50}
+.space-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.space-card{padding:10px 12px;border-radius:8px;border:1.5px solid #e0e3e8;cursor:pointer;transition:all .15s;background:#fff}
+.space-card:hover{border-color:#2C3E50;background:#f8f9fc}
+.space-card.active{border-color:#2C3E50;background:#EBF0F7}
+.space-card-name{font-size:12px;font-weight:600;color:#1a1a2e}
+.space-card-type{font-size:11px;color:#999;margin-top:2px}
+
+/* 탭 */
+.tab-bar{display:flex;gap:0;background:#fff;border-radius:12px 12px 0 0;border:0.5px solid #e0e3e8;border-bottom:none;overflow:hidden;margin-bottom:0}
+.tab-btn{flex:1;padding:12px 0;text-align:center;font-size:13px;font-weight:500;cursor:pointer;color:#999;border-bottom:2px solid transparent;transition:all .15s;background:#fff}
+.tab-btn.active{color:#2C3E50;border-bottom-color:#2C3E50;background:#fff}
+
+/* 항목 목록 */
+.items-wrap{background:#fff;border-radius:0 0 12px 12px;border:0.5px solid #e0e3e8;border-top:none;overflow:hidden}
+.items-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f2f4;background:#fafbfc}
+.items-count{font-size:12px;color:#999}
+.add-btn{padding:6px 14px;border-radius:8px;border:none;background:#2C3E50;color:#fff;font-size:12px;cursor:pointer;font-weight:500}
+.add-btn:hover{background:#3d5166}
+
+.item-list{max-height:360px;overflow-y:auto}
+.item-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid #f5f6f8;gap:10px;transition:background .1s}
+.item-row:hover{background:#fafbfc}
+.item-cat{font-size:10px;font-weight:600;color:#fff;padding:2px 7px;border-radius:10px;background:#7f8c8d;white-space:nowrap;flex-shrink:0}
+.item-name{font-size:12px;font-weight:500;color:#1a1a2e;min-width:100px;flex-shrink:0}
+.item-val{font-size:12px;color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-val.miss{color:#e74c3c;font-style:italic}
+.item-status{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.st-정상{background:#e8f5e9;color:#2e7d32}
+.st-주의{background:#fff8e1;color:#f57f17}
+.st-불량{background:#fdecea;color:#c62828}
+.st-미확인{background:#f3f4f6;color:#999}
+.item-actions{display:flex;gap:4px;flex-shrink:0}
+.edit-btn,.del-btn{padding:3px 8px;border-radius:6px;border:none;font-size:11px;cursor:pointer}
+.edit-btn{background:#EBF0F7;color:#2C3E50}
+.edit-btn:hover{background:#d6e4f7}
+.del-btn{background:#fdecea;color:#c62828}
+.del-btn:hover{background:#f5c6c6}
+
+.empty-list{padding:32px;text-align:center;color:#bbb;font-size:13px}
+
+/* 모달 */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.show{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:16px;width:520px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;transform:translateY(16px);transition:transform .2s}
+.modal-bg.show .modal{transform:translateY(0)}
+.modal-header{padding:18px 20px 14px;border-bottom:1px solid #e0e3e8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:700;color:#1a1a2e}
+.modal-close{width:28px;height:28px;border-radius:50%;border:none;background:#f0f2f5;cursor:pointer;font-size:16px;color:#666;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid #e0e3e8;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+/* 폼 */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;font-weight:600;color:#666}
+.form-label.req::after{content:" *";color:#e74c3c}
+.form-input,.form-select,.form-textarea{padding:8px 10px;border-radius:8px;border:1px solid #d0d4da;font-size:12px;color:#1a1a2e;background:#fff;width:100%;transition:border-color .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:#2C3E50}
+.form-textarea{resize:vertical;min-height:60px}
+
+/* 버튼 */
+.btn-cancel{padding:8px 18px;border-radius:8px;border:1px solid #d0d4da;background:#fff;font-size:13px;cursor:pointer;color:#666}
+.btn-save{padding:8px 18px;border-radius:8px;border:none;background:#2C3E50;color:#fff;font-size:13px;cursor:pointer;font-weight:500}
+.btn-save:hover{background:#3d5166}
+.btn-save:disabled{background:#bbb;cursor:not-allowed}
+
+/* 토스트 */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2C3E50;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.toast.err{background:#c62828}
+
+/* 로딩 */
+.loading-row{padding:24px;text-align:center;color:#bbb;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-title">✏️ MTH 공간정보 입력 — 금토동</div>
+  <div class="hd-sub">구글 시트 연동</div>
+</header>
+
+<div class="container">
+
+  <!-- 공간 선택 -->
+  <div class="space-select-wrap">
+    <div class="section-title">공간 선택</div>
+    <div class="floor-tabs" id="floorTabs">
+      <button class="ftab active" data-floor="1">1층</button>
+      <button class="ftab" data-floor="2">2층</button>
+      <button class="ftab" data-floor="3">3층</button>
+    </div>
+    <div class="space-grid" id="spaceGrid">
+      <div class="loading-row" style="grid-column:1/-1">공간 불러오는 중…</div>
+    </div>
+  </div>
+
+  <!-- 항목 탭 + 목록 -->
+  <div id="itemsSection" style="display:none">
+    <div class="tab-bar">
+      <div class="tab-btn active" data-tab="facility">설비</div>
+      <div class="tab-btn" data-tab="furnishings">가구·소품</div>
+    </div>
+    <div class="items-wrap">
+      <div class="items-toolbar">
+        <span class="items-count" id="itemsCount"></span>
+        <button class="add-btn" id="addBtn">+ 항목 추가</button>
+      </div>
+      <div class="item-list" id="itemList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 모달 -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">항목 추가</div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="formGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="btnCancel">취소</button>
+      <button class="btn-save" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS = "https://script.google.com/macros/s/AKfycbwkeHI29A41nAL3CaDLb9Ad49vxXegzN0Va_ZLvClODdmLqOP2tzIstHaKztC2DgG6x/exec";
+
+const CAT_COLORS = {
+  "냉난방":"#3498db","조명":"#f39c12","창문·문":"#9b59b6",
+  "전기·콘센트":"#e67e22","수도·배수":"#16a085","안전·보안":"#e74c3c",
+  "가구":"#27ae60","소품":"#8e44ad","비품":"#2980b9","소모품":"#7f8c8d","기타설비":"#95a5a6"
+};
+
+const FACILITY_CATS   = ["냉난방","조명","창문·문","전기·콘센트","수도·배수","안전·보안","기타설비"];
+const FURNISHING_CATS = ["가구","소품","비품","소모품"];
+const STATUSES        = ["정상","주의","불량","미확인"];
+
+let state = {
+  floor: "1",
+  tab: "facility",
+  spaces: [],
+  selSpaceId: null,
+  facility: [],
+  furnishings: [],
+  editingId: null,
+};
+
+// ── 초기 로드 ──────────────────────────────────
+async function init() {
+  await loadSpaces();
+}
+
+async function loadSpaces() {
+  try {
+    const res  = await fetch(`${GAS}?action=spaces`);
+    const json = await res.json();
+    if (json.ok) state.spaces = json.data;
+  } catch(e) { toast("공간 로드 실패", true); }
+  renderSpaces();
+}
+
+async function loadItems() {
+  if (!state.selSpaceId) return;
+  document.getElementById("itemList").innerHTML = '<div class="loading-row">불러오는 중…</div>';
+  try {
+    const [fRes, fnRes] = await Promise.all([
+      fetch(`${GAS}?action=facility`),
+      fetch(`${GAS}?action=furnishings`),
+    ]);
+    const [fJson, fnJson] = await Promise.all([fRes.json(), fnRes.json()]);
+    if (fJson.ok)  state.facility    = fJson.data;
+    if (fnJson.ok) state.furnishings = fnJson.data;
+  } catch(e) { toast("항목 로드 실패", true); }
+  renderItems();
+}
+
+// ── 렌더링 ─────────────────────────────────────
+function renderSpaces() {
+  const floors = [...new Set(state.spaces.map(s => s.floor))];
+  const curFloorSpaces = state.spaces.filter(s => s.floor === state.floor);
+  const grid = document.getElementById("spaceGrid");
+  if (!curFloorSpaces.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:12px;color:#bbb;padding:12px 0">이 층에 공간이 없습니다</div>';
+    return;
+  }
+  grid.innerHTML = curFloorSpaces.map(s => `
+    <div class="space-card ${s.space_id===state.selSpaceId?'active':''}" data-id="${s.space_id}">
+      <div class="space-card-name">${s.space_name}</div>
+      <div class="space-card-type">${s.space_type}${s.area_m2?` · ${s.area_m2}㎡`:''}</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.space-card').forEach(c => {
+    c.addEventListener('click', () => {
+      state.selSpaceId = c.dataset.id;
+      renderSpaces();
+      document.getElementById('itemsSection').style.display = 'block';
+      loadItems();
+    });
+  });
+}
+
+function renderItems() {
+  const src   = state.tab === 'facility' ? state.facility : state.furnishings;
+  const items = src.filter(i => i.space_id === state.selSpaceId);
+  const count = document.getElementById('itemsCount');
+  const list  = document.getElementById('itemList');
+  count.textContent = `총 ${items.length}개`;
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-list">아직 항목이 없어요 — 추가해보세요</div>';
+    return;
+  }
+
+  const keyName  = state.tab === 'facility' ? 'item_name' : 'item_name';
+  const keyVal   = state.tab === 'facility' ? 'value'     : 'value';
+  const keyVal2  = state.tab === 'furnishings' ? 'brand_model' : null;
+
+  list.innerHTML = items.map(i => {
+    const cat    = i.category || '';
+    const catBg  = CAT_COLORS[cat] || '#95a5a6';
+    const val    = i[keyVal] || (keyVal2 ? i[keyVal2] : '') || '';
+    const isMiss = val === '미확인' || i.status === '미확인';
+    const stCls  = `st-${i.status||'미확인'}`;
+    return `<div class="item-row">
+      <span class="item-cat" style="background:${catBg}">${cat}</span>
+      <span class="item-name">${i.item_name||''}</span>
+      <span class="item-val${isMiss?' miss':''}">${val}${i.quantity&&i.quantity!=='미확인'?' × '+i.quantity:''}</span>
+      <span class="item-status ${stCls}">${i.status||'미확인'}</span>
+      <div class="item-actions">
+        <button class="edit-btn" data-id="${i.item_id}">수정</button>
+        <button class="del-btn"  data-id="${i.item_id}">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.edit-btn').forEach(b => {
+    b.addEventListener('click', () => openModal(b.dataset.id));
+  });
+  list.querySelectorAll('.del-btn').forEach(b => {
+    b.addEventListener('click', () => deleteItem(b.dataset.id));
+  });
+}
+
+// ── 모달 ───────────────────────────────────────
+function openModal(itemId) {
+  state.editingId = itemId || null;
+  const isEdit    = !!itemId;
+  const src       = state.tab === 'facility' ? state.facility : state.furnishings;
+  const item      = isEdit ? src.find(i => i.item_id === itemId) : {};
+
+  document.getElementById('modalTitle').textContent = isEdit ? '항목 수정' : '항목 추가';
+
+  const cats = state.tab === 'facility' ? FACILITY_CATS : FURNISHING_CATS;
+  const sp   = state.spaces.find(s => s.space_id === state.selSpaceId);
+
+  const facilityFields = `
+    <div class="form-group">
+      <label class="form-label req">카테고리</label>
+      <select class="form-select" id="f_category">
+        ${cats.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label req">항목명</label>
+      <input class="form-input" id="f_item_name" placeholder="예) 에어컨 브랜드" value="${item.item_name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label req">내용/값</label>
+      <input class="form-input" id="f_value" placeholder="예) LG 휘센" value="${item.value||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">상태</label>
+      <select class="form-select" id="f_status">
+        ${STATUSES.map(s=>`<option value="${s}" ${(item.status||'미확인')===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">치수</label>
+      <input class="form-input" id="f_dimension" placeholder="예) W900×H1200" value="${item.dimension||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">위치 설명</label>
+      <input class="form-input" id="f_location_desc" placeholder="예) 현관 들어와 우측" value="${item.location_desc||''}">
+    </div>
+    <div class="form-group form-full">
+      <label class="form-label">사진 URL</label>
+      <input class="form-input" id="f_photo_url" placeholder="구글 드라이브 공유 링크" value="${item.photo_url||''}">
+    </div>
+    <div class="form-group form-full">
+      <label class="form-label">메모</label>
+      <textarea class="form-textarea" id="f_notes" placeholder="추가 메모">${item.notes||''}</textarea>
+    </div>
+  `;
+
+  const furnishingsFields = `
+    <div class="form-group">
+      <label class="form-label req">카테고리</label>
+      <select class="form-select" id="f_category">
+        ${cats.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label req">품목명</label>
+      <input class="form-input" id="f_item_name" placeholder="예) 3인 소파" value="${item.item_name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">브랜드·모델</label>
+      <input class="form-input" id="f_brand_model" placeholder="예) 일루니" value="${item.brand_model||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">수량</label>
+      <input class="form-input" id="f_quantity" placeholder="예) 1" value="${item.quantity||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">치수</label>
+      <input class="form-input" id="f_dimension" placeholder="예) W1800×D900" value="${item.dimension||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">상태</label>
+      <select class="form-select" id="f_status">
+        ${STATUSES.map(s=>`<option value="${s}" ${(item.status||'미확인')===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">이동 가능</label>
+      <select class="form-select" id="f_movable">
+        ${['O','X','요확인','미확인'].map(v=>`<option value="${v}" ${item.movable===v?'selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">배치 위치</label>
+      <input class="form-input" id="f_location_desc" placeholder="예) 거실 중앙" value="${item.location_desc||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">보관 위치</label>
+      <input class="form-input" id="f_storage_loc" placeholder="예) 창고 선반 2단" value="${item.storage_loc||''}">
+    </div>
+    <div class="form-group form-full">
+      <label class="form-label">사진 URL</label>
+      <input class="form-input" id="f_photo_url" placeholder="구글 드라이브 공유 링크" value="${item.photo_url||''}">
+    </div>
+    <div class="form-group form-full">
+      <label class="form-label">메모</label>
+      <textarea class="form-textarea" id="f_notes" placeholder="추가 메모">${item.notes||''}</textarea>
+    </div>
+  `;
+
+  document.getElementById('formGrid').innerHTML =
+    state.tab === 'facility' ? facilityFields : furnishingsFields;
+
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('show');
+  state.editingId = null;
+}
+
+async function saveItem() {
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.textContent = '저장 중…';
+
+  const g = id => document.getElementById(id);
+  const v = id => g(id) ? g(id).value.trim() : '';
+
+  if (!v('f_category') || !v('f_item_name')) {
+    toast('카테고리와 항목명은 필수입니다', true);
+    btn.disabled = false; btn.textContent = '저장';
+    return;
+  }
+
+  const data = {
+    space_id: state.selSpaceId,
+    category: v('f_category'),
+    item_name: v('f_item_name'),
+    status: v('f_status') || '미확인',
+    dimension: v('f_dimension'),
+    location_desc: v('f_location_desc'),
+    photo_url: v('f_photo_url'),
+    notes: v('f_notes'),
+  };
+
+  if (state.tab === 'facility') {
+    data.value = v('f_value');
+  } else {
+    data.value = v('f_brand_model'); // furnishings는 brand_model을 value처럼 씀
+    data.brand_model = v('f_brand_model');
+    data.quantity    = v('f_quantity');
+    data.movable     = v('f_movable');
+    data.storage_loc = v('f_storage_loc');
+  }
+
+  if (state.editingId) data.item_id = state.editingId;
+
+  try {
+    const action = state.tab === 'facility' ? 'upsert_facility' : 'upsert_furnishings';
+    const res  = await fetch(GAS, {
+      method: 'POST',
+      body: JSON.stringify({ action, data }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      toast(state.editingId ? '수정됐어!' : '추가됐어!');
+      closeModal();
+      await loadItems();
+    } else {
+      toast('저장 실패: ' + json.error, true);
+    }
+  } catch(e) {
+    toast('네트워크 오류', true);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '저장';
+}
+
+async function deleteItem(itemId) {
+  if (!confirm('정말 삭제할까요?')) return;
+  try {
+    const action = state.tab === 'facility' ? 'delete_facility' : 'delete_furnishings';
+    const res  = await fetch(GAS, {
+      method: 'POST',
+      body: JSON.stringify({ action, item_id: itemId }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      toast('삭제됐어!');
+      await loadItems();
+    } else {
+      toast('삭제 실패: ' + json.error, true);
+    }
+  } catch(e) {
+    toast('네트워크 오류', true);
+  }
+}
+
+// ── 이벤트 ─────────────────────────────────────
+document.querySelectorAll('.ftab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.ftab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.floor = b.dataset.floor;
+    state.selSpaceId = null;
+    document.getElementById('itemsSection').style.display = 'none';
+    renderSpaces();
+  });
+});
+
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.tab = b.dataset.tab;
+    renderItems();
+  });
+});
+
+document.getElementById('addBtn').addEventListener('click', () => openModal(null));
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('btnCancel').addEventListener('click', closeModal);
+document.getElementById('btnSave').addEventListener('click', saveItem);
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+init();
+</script>
+</body>
+</html>
